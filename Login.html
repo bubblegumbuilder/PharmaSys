@@ -1,90 +1,175 @@
 <!DOCTYPE html>
-<!--Begin HTML page-->
 <html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link 
+        rel="stylesheet" 
+        href="TheBranding.css" 
+    >
+    <title>
+        PharmaSys Login
+    </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS variables if used in TheBranding.css or here */
+        :root {
+            --color-bg: #f0f8ff; /* A light cyan similar to bg-cyan-50 */
+            --color-text: #9ca3af; /* A gray for borders/placeholders */
+            --color-link: #3b82f6; /* A blue for links/buttons */
+            --color-button-bg: #4f7d98; /* A darker blue/cyan for button, similar to design */
+            --color-button-text: white;
+            --color-pharmacy-green: #34d399; /* Example green for logo background */
+        }
 
-    <!--This portion of the code declares the values that will be present in the header. The header is the text on the tab overview-->
-    <head>
-        <!--declare what are the characters involved-->
-        <meta charset="utf-8">
-        <!--This line is what declares the website to be flexible with the user's screen. without it, it cannot be cross compatible between phones and computers-->
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <!--Link to our custom utility CSS-->
-        <link   
-            rel="stylesheet" 
-            href="TheBranding.css" 
-        >
-        <!--below this is the line that will show on the page head-->
-        <title>
-            PharmaSys Login
-        </title>
-    </head>
+        body {
+            font-family: Arial, sans-serif; /* Fallback font */
+            background-color: var(--color-bg);
+            color: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
 
-    <!--This portion of the code is the body initialization. the class declaration creates the specifics that the application can work with, beginning with the color utilization and positioning-->
-    <body class="font-sans bg-cyan-50 text-black flex items-center justify-center" style="min-height: 100vh;">
-        <!--Since this is the log in page, we can squeeze the pad into a main class-->
-        <main class="container p-4" style="background-color: white; border: 1px solid var(--color-bg); border-radius: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 20rem; width: 100%;">
-            <!--This is the first row of the program, import logo soon-->
-            <h1 class="m-4 text-black" style="font-size: 1.5rem; font-weight: 600; text-align: center;">
-                PharmaSys
-            </h1>
-            <!--This section is the initialization for the form entry for log in. everything will be compiled and sent to the backend script immediately after pressing a button-->
-            <form class="m-2" method="post" action="fillThisUpLater">
-                <!--employee-->
-                <div class="m-2">
-                    <input
-                        id="employeeId"
-                        name="employeeId"
-                        type="text"
-                        placeholder="Employee ID"
-                        class="p-2"
-                        style="width: 100%; border: 1px solid var(--color-text); border-radius: 0.5rem;"
-                        required
-                    />
-                </div>
-                <!--User-->
-                <div class="m-2">
-                    <input
-                        id="username"
-                        name="username"
-                        type="text"
-                        placeholder="Username"
-                        class="p-2"
-                        style="width: 100%; border: 1px solid var(--color-text); border-radius: 0.5rem;"
-                        required
-                    />
-                </div>
-                <!--Password-->
-                <div class="m-2">
-                    <input
-                        id="password"
-                        name="password"
-                        type="password"
-                        placeholder="Password"
-                        class="p-2"
-                        style="width: 100%; border: 1px solid var(--color-text); border-radius: 0.5rem;"
-                        required
-                    />
-                </div>
-                <button
-                    type="submit"
-                    class="m-2 p-2 text-black"
-                    style="width: 100%; border: none; border-radius: 0.5rem; background-color: var(--color-link); color: white;"
-                >
-                    Log In
-                </button>
-            </form>
-            <!--The div function is how to create "classes" in html. This one creates a hyperlink section, divided from the rest of the script-->
-            <div class="m-4 flex justify-between" style="font-size: 0.875rem; color: var(--color-link);">
-                <!--The a function below is an anchor. This allows us to create href attributes, standing for Hyperlink, which can let us be redirected to the target website being indicated-->
-                <a>
-                    Forgot password?
-                </a>
-                <!--Same thing as above, almighty href. But this time, we patched that shit-->
-                <a href="SignUp.html" class="hover:underline" style="color: var(--color-link);">
-                    Create account
-                </a>
+        .container-card {
+            background-color: white;
+            border-radius: 1rem; /* Adjust as needed for rounded corners */
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Subtle shadow */
+            max-width: 24rem; /* Adjusted for a slightly wider card as in image */
+            width: 90%; /* Responsive width */
+            padding: 1.5rem; /* Padding inside the card */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem; /* Space between elements */
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 0.5rem; /* Space below the logo */
+            gap: 0.5rem; /* Space between logo and text */
+        }
+
+        .logo-container img {
+            width: 8rem; /* Adjust size of logo */
+            height: 8rem;
+            object-fit: contain;
+        }
+
+        .pharmacy-text {
+            font-size: 1.75rem; /* Adjust font size as needed */
+            font-weight: bold;
+            color: #333; /* Darker text color for heading */
+        }
+
+        .inventory-text {
+            font-size: 1.1rem; /* Adjust font size as needed */
+            font-weight: normal;
+            color: #555;
+            margin-top: -0.5rem; /* Pull up closer to pharmacy text */
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 0.75rem 1rem; /* Increased padding for height */
+            border: 1px solid var(--color-text); /* Lighter border */
+            border-radius: 0.5rem; /* Rounded corners for inputs */
+            box-sizing: border-box; /* Include padding in width */
+            font-size: 1rem;
+            color: #333;
+        }
+
+        .input-field::placeholder {
+            color: #999; /* Lighter placeholder text */
+        }
+
+        .login-button {
+            width: 100%;
+            padding: 0.75rem 1.5rem; /* Padding for button height */
+            border: none;
+            border-radius: 0.5rem;
+            background-color: var(--color-button-bg); /* Darker blue/cyan */
+            color: var(--color-button-text);
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .login-button:hover {
+            background-color: #3a6279; /* Slightly darker on hover */
+        }
+
+        .signup-link-container {
+            margin-top: 1rem;
+            text-align: center;
+            font-size: 0.95rem; /* Slightly larger text */
+        }
+
+        .signup-link {
+            color: var(--color-link);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .signup-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <main class="container-card">
+        <div class="logo-container">
+            <img src="assets/pharmacy_logo.png" alt="PharmaSys Logo">
+            <div>
+                <h1 class="pharmacy-text">[Pharmacy]</h1>
+                <p class="inventory-text">Inventory Database</p>
             </div>
-        </main>
-    </body>
-
+        </div>
+        
+        <form method="post" action="fillThisUpLater" style="width: 100%; display: flex; flex-direction: column; gap: 0.8rem;">
+            <input
+                id="employeeId"
+                name="employeeId"
+                type="text"
+                placeholder="Employee ID"
+                class="input-field"
+                required
+            />
+            <input
+                id="username"
+                name="username"
+                type="text"
+                placeholder="Username"
+                class="input-field"
+                required
+            />
+            <input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Password"
+                class="input-field"
+                required
+            />
+            <button
+                type="submit"
+                class="login-button"
+            >
+                Log In
+            </button>
+        </form>
+        
+        <div class="signup-link-container">
+            New Account? <a href="SignUp.html" class="signup-link">Sign up here!</a>
+        </div>
+        <div style="position: absolute; bottom: 1rem; left: 1rem;">
+            <button style="background: none; border: none; font-size: 2rem; color: #666; cursor: pointer;">
+                &#9664; </button>
+        </div>
+    </main>
+</body>
 </html>
