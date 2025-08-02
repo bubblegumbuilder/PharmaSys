@@ -120,6 +120,7 @@ def success_page():
     # Renders a success page after successful Signup form submission.
     return render_template('success.html')
 
+##this is the call for user dashboard.
 @app.route('/dashboard', methods=['GET'])
 def dashboard_page():
     # Section where template for html is declared
