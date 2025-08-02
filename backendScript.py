@@ -134,11 +134,17 @@ def dashboard_page():
         # TEMPORARY: Use hardcoded username as current_user
         current_user = session['username']
 
+
         # Get number of users
         cursor.execute("SELECT COUNT(*) AS total FROM LoginData")
         result = cursor.fetchone()
         user_count = result['total'] if result else 0
 
+        #______________________________________________________ADD MORE HERE. THIS PART IS FOR THE INVENTORY TABLE AND THE TRANSACTIONS TABLE___________
+        #Tasks:
+        #Obtain the table name for the inventory and assign the table values in a variable to call for returning values
+        #after variable assignment, proceed with rendering the specifics in the HTML through this script.
+        
         return render_template('UserDashboard.html',
                                current_user=current_user,
                                user_count=user_count)
@@ -153,9 +159,12 @@ def dashboard_page():
         if connection and connection.is_connected():
             connection.close()
 
+#________________________________JAM TASK HERE___________________________________________ YIPPIE_________________________________
 @app.route('/admin_dashboard', methods=['GET'])
 def admin_dashboard():
     return render_template('AdminDashboard.html')
+#______________you need to populate the table names here_______________________
+
 
 @app.route('/logout', methods=['POST'])
 def logout():
