@@ -9,7 +9,7 @@
         <!--This line is what declares the website to be flexible with the user's screen. without it, it cannot be cross compatible between phones and computers-->
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <!--Link to our custom utility CSS-->
-        <link rel="stylesheet" href="{{ url_for('static', filename='TheBranding.css') }}">
+        <link rel="stylesheet" href="TheBranding.css">
         <!--below this is the line that will show on the page head-->
         <title>
             PharmaSys Sign Up
@@ -27,23 +27,13 @@
             max-width: 20rem;
             width: 100%;
         ">
-            <!-- logo "feel free to swap out the logo to something else here"-->
-            <div class="flex justify-center mb-6">
-                <img 
-                    width="200"
-                    height="200"
-                    src="{{ url_for('static', filename='Assets/Logo.png') }}"
-                    alt="PharmaSys" 
-                    class="h-12"
-                />
-            </div>
             <!--Form title-->
             <h1 class="m-4 text-black" style="font-size: 1.5rem; font-weight: 600; text-align: center;">
                 Create Account
             </h1>
 
             <!--Signup form begins here-->
-            <form class="m-2" method="post" action="{{ url_for('submit_signup') }}">
+            <form class="m-2" method="post" action="fillThisUpLater">
                 <!--First row: First name + Last name-->
                 <div class="flex justify-between m-2">
                     <input
@@ -158,14 +148,12 @@
                 </button>
             </form>
             <div class="m-4 flex justify-between" style="font-size: 0.875rem; color: var(--color-link);">
-                <!--The a function below is an anchor. 
-                This allows us to create href attributes, standing for Hyperlink, 
-                which can let us be redirected to the target website being indicated-->
-                <b>
+                <!--The a function below is an anchor. This allows us to create href attributes, standing for Hyperlink, which can let us be redirected to the target website being indicated-->
+                <a>
                     Already have an account?
-                </b>
+                </a>
                 <!--Same thing as above, almighty href. But this time, we patched that shit-->
-                <a href="{{ url_for('index') }}" class="hover:underline" style="color: var(--color-link);">
+                <a href="Login.html" class="hover:underline" style="color: var(--color-link);">
                     Login
                 </a>
             </div>

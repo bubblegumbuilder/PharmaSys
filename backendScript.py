@@ -1,7 +1,7 @@
 # I screwed up with the last backend file so I'm remaking it all over again
 # This is what we will use for the whole code. flask, exclusively.
 import os  # needed for loading secret key from environment
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash  # for secure password handling
 # MySQL connector for backend integration
 import mysql.connector
@@ -88,9 +88,11 @@ def submit_form():
                     flash('Login successful!', 'success')
                     if role == 'Admin':
                         print("Admin Detected")
+                        session['username'] = username
                         return redirect(url_for('admin_dashboard'))
                     elif role == 'user':
                         print("User Detected")
+                        session['username'] = username
                         return redirect(url_for('dashboard_page'))
                     else:
                         print("who u")
@@ -123,12 +125,43 @@ def success_page():
 ##this is the call for user dashboard.
 @app.route('/dashboard', methods=['GET'])
 def dashboard_page():
-    # Section where template for html is declared
-    return render_template('UserDashboard.html')
+    connection = None
+    cursor = None
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor(dictionary=True)
+
+        # TEMPORARY: Use hardcoded username as current_user
+        current_user = session['username']
+
+        # Get number of users
+        cursor.execute("SELECT COUNT(*) AS total FROM LoginData")
+        result = cursor.fetchone()
+        user_count = result['total'] if result else 0
+
+        return render_template('UserDashboard.html',
+                               current_user=current_user,
+                               user_count=user_count)
+    except mysql.connector.Error as err:
+        flash(f'Database error: {err}', 'error')
+        return render_template('UserDashboard.html',
+                               current_user="Unknown",
+                               user_count=0)
+    finally:
+        if cursor:
+            cursor.close()
+        if connection and connection.is_connected():
+            connection.close()
 
 @app.route('/admin_dashboard', methods=['GET'])
 def admin_dashboard():
     return render_template('AdminDashboard.html')
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    flash('You have been logged out.', 'success')
+    return redirect(url_for('index'))
 
 @app.route('/signup', methods=['GET'])
 def signup_page():

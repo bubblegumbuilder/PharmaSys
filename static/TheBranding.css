@@ -140,3 +140,73 @@ button:hover {
   margin-top: var(--space-4);
   margin-bottom: var(--space-4);
 }
+
+/* Layout container for sidebar and content */
+body {
+  display: flex;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* Sidebar styles */
+.sidebar {
+  width: 220px;
+  background-color: #20232a;
+  color: white;
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+/* Sidebar header */
+.sidebar-header h1 {
+  font-size: 1.5rem;
+  margin-bottom: var(--space-4);
+  color: #61dafb;
+}
+
+/* Sidebar navigation links */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sidebar-nav .nav-link {
+  padding: var(--space-2) var(--space-3);
+  border-radius: 4px;
+  background-color: transparent;
+  color: white;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-nav .nav-link:hover,
+.sidebar-nav .nav-link.active {
+  background-color: #282c34;
+  color: #61dafb;
+}
+
+/* Main content area */
+.main-content {
+  flex: 1;
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+/* Hide inactive sections */
+.hidden {
+  display: none;
+}
+
+/* Dashboard card specifically */
+.dashboard-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 5px rgba(0, 195, 255, 0.1);
+  padding: var(--space-4);
+  margin-top: var(--space-4);
+}
