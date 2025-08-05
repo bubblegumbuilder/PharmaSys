@@ -156,12 +156,15 @@ def dashboard_page():
 def admin_dashboard():
     return render_template('AdminDashboard.html')
 
+<<<<<<< HEAD
 @app.route('/logout', methods=['POST'])
 def logout():
     session.clear()
     flash('You have been logged out.', 'success')
     return redirect(url_for('index'))
 
+=======
+>>>>>>> parent of 5cb7a08 (logout added)
 @app.route('/signup', methods=['GET'])
 def signup_page():
     # Renders the signup form page, which in this case, is SignUp.html
