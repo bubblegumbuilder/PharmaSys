@@ -41,7 +41,7 @@
                     <p id="account-count"><strong>Accounts registered:</strong> {{ user_count }}</p>
                     <p id="time-on-screen"><strong>Time on screen:</strong> 0s</p>
                 </div>
-                <button id="logout-btn" method="post" action="/logout" class="logout-btn">Logout</button>
+                <button id="logout-btn" class="logout-btn">Logout</button>
             </div>
         </section>
 
@@ -69,9 +69,8 @@
             </div>
         </section>
     </main>
-    
+
     <script>
-        //I honestly can't fucking believe that I have to use a bit of Javascript on the program, but all is well, I guess
         const startTime = Date.now();
 
         // Tab navigation
@@ -100,17 +99,9 @@
             document.getElementById('time-on-screen').innerHTML = '<strong>Time on screen:</strong> ' + secs + 's';
         }, 1000);
 
-        // Logout button [yeah uh, let's leave this blank for future use]
+        // Logout button
         document.getElementById('logout-btn').addEventListener('click', function() {
-            fetch('/logout', {
-                method: 'POST'
-            })
-            .then(() => {
-                window.location.href = '/';
-            })
-            .catch(err => {
-                console.error('Logout failed:', err);
-            });
+            window.location.href = 'Login';
         });
 
         // TODO: Replace the function below with a fetch() to call Flask endpoints returning JSON data
