@@ -131,7 +131,7 @@ def dashboard_page():
         cursor = connection.cursor(dictionary=True)
 
         # TEMPORARY: Use hardcoded username as current_user
-        current_user = "PlaceholderUser"
+        current_user = session['username']
 
         # Get number of users
         cursor.execute("SELECT COUNT(*) AS total FROM LoginData")
@@ -156,7 +156,7 @@ def dashboard_page():
 def admin_dashboard():
     return render_template('AdminDashboard.html')
 
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
 def logout():
     session.clear()
     flash('You have been logged out.', 'success')
