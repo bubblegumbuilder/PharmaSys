@@ -260,14 +260,15 @@ def api_inventory():
             FROM drugdatabase
         """)
         rows = cursor.fetchall()
-        # Convert dates to strings if needed
         for row in rows:
             if 'ExpirationDate' in row and hasattr(row['ExpirationDate'], 'isoformat'):
                 row['ExpirationDate'] = row['ExpirationDate'].isoformat()
             if 'LastUpdated' in row and hasattr(row['LastUpdated'], 'isoformat'):
                 row['LastUpdated'] = row['LastUpdated'].isoformat()
+        from flask import jsonify
         return jsonify(rows)
     except mysql.connector.Error as err:
+        from flask import jsonify
         return jsonify({"error": str(err)}), 500
     finally:
         if cursor:
@@ -275,6 +276,46 @@ def api_inventory():
         if connection and connection.is_connected():
             connection.close()
 
+@app.route('/api/inventory', methods=['POST'])
+def add_drug():
+    data = request.json
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
+        cursor.execute("""
+            INSERT INTO drugdatabase
+                (DrugName, GenericName, Manufacturer, Quantity, DosageForm, Size, Unit, PurchasePrice, SellingPrice, ExpirationDate, BatchNumber)
+            VALUES
+                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            data.get('DrugName'), data.get('GenericName'), data.get('Manufacturer'), data.get('Quantity'),
+            data.get('DosageForm'), data.get('Size'), data.get('Unit'), data.get('PurchasePrice'),
+            data.get('SellingPrice'), data.get('ExpirationDate'), data.get('BatchNumber')
+        ))
+        connection.commit()
+        return jsonify({"success": True}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if cursor: cursor.close()
+        if connection and connection.is_connected(): connection.close()
+
+@app.route('/api/inventory', methods=['DELETE'])
+def delete_drug():
+    ids = request.json.get('DrugIDs', [])
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
+        format_strings = ','.join(['%s'] * len(ids))
+        cursor.execute(f"DELETE FROM drugdatabase WHERE DrugID IN ({format_strings})", tuple(ids))
+        connection.commit()
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if cursor: cursor.close()
+        if connection and connection.is_connected(): connection.close()
+        
 ##This is what starts flask. 
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', False)

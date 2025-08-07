@@ -55,7 +55,36 @@
                 </table>
                 <div id="inventory-loading" class="loading-message">Loading inventory data...</div>
             </div>
+            <div class="table-controls">
+                <input type="text" id="inventory-search" placeholder="Search by Drug Name or ID">
+                <button id="add-drug-btn">Add New Drug</button>
+                <button id="delete-selected-btn">Delete Selected</button>
+            </div>
         </section>
+
+        <div id="drug-detail-panel" class="hidden"></div>
+
+        <div id="add-drug-modal" class="hidden">
+            <div class="modal-content">
+                <h3>Add New Drug</h3>
+                <form id="add-drug-form">
+                    <!-- Inputs for all fields. You can repeat for all columns -->
+                    <input name="DrugName" placeholder="Drug Name" required>
+                    <input name="GenericName" placeholder="Generic Name">
+                    <input name="Manufacturer" placeholder="Manufacturer">
+                    <input name="Quantity" placeholder="Quantity" type="number" min="0">
+                    <input name="DosageForm" placeholder="Dosage Form">
+                    <input name="Size" placeholder="Size">
+                    <input name="Unit" placeholder="Unit">
+                    <input name="PurchasePrice" placeholder="Purchase Price" type="number" step="0.01">
+                    <input name="SellingPrice" placeholder="Selling Price" type="number" step="0.01">
+                    <input name="ExpirationDate" placeholder="Expiration Date (YYYY-MM-DD)" type="date">
+                    <input name="BatchNumber" placeholder="Batch Number">
+                    <button type="submit">Add Drug</button>
+                    <button type="button" onclick="closeAddDrugModal()">Cancel</button>
+                </form>
+            </div>
+        </div>
 
         <!-- Receipts Tab -->
         <section id="receipts-section" class="hidden">
@@ -123,6 +152,10 @@
 
             // Create headers
             const headerRow = document.createElement('tr');
+            const selectAllTh = document.createElement('th');
+            selectAllTh.innerHTML = '<input type="checkbox" id="select-all-drugs">';
+            headerRow.appendChild(selectAllTh);
+
             Object.keys(data[0]).forEach(function(col) {
                 const th = document.createElement('th');
                 th.textContent = col.charAt(0).toUpperCase() + col.slice(1);
@@ -131,21 +164,57 @@
             thead.appendChild(headerRow);
 
             // Create rows
-            data.forEach(function(row) {
+            data.forEach(function(row, rowIndex) {
                 const tr = document.createElement('tr');
+                const selectTd = document.createElement('td');
+                selectTd.innerHTML = `<input type="checkbox" class="drug-row-check" data-row="${rowIndex}" data-drugid="${row.DrugID}">`;
+                tr.appendChild(selectTd);
+
                 Object.values(row).forEach(function(val) {
                     const td = document.createElement('td');
                     td.textContent = val || '';
                     tr.appendChild(td);
                 });
+                tr.dataset.row = rowIndex;
+                tr.dataset.drugid = row.DrugID; // Attach DrugID for reference
+                tr.classList.add('clickable-row');
                 tbody.appendChild(tr);
             });
 
             if (loadingDiv) {
                 loadingDiv.style.display = 'none';
             }
+
+            // Enable select-all
+            document.getElementById('select-all-drugs').addEventListener('click', function() {
+                const checked = this.checked;
+                document.querySelectorAll('.drug-row-check').forEach(cb => cb.checked = checked);
+            });
+
+            // Row click handler (for search/view details)
+            document.querySelectorAll('.clickable-row').forEach(row => {
+                row.addEventListener('click', function(e) {
+                    if (e.target.tagName === 'INPUT') return; // Ignore if click on checkbox
+                    const drugId = this.dataset.drugid;
+                    viewDrugPanel(drugId, data);
+                });
+            });
         }
 
+        function viewDrugPanel(drugId, dataset) {
+            const data = dataset || [];
+            const drug = data.find(d => String(d.DrugID) === String(drugId));
+            if (!drug) return;
+            let html = `<h3>Drug Details</h3><table class="data-table"><tbody>`;
+            for (const [k, v] of Object.entries(drug)) {
+                html += `<tr><th>${k}</th><td>${v}</td></tr>`;
+            }
+            html += `</tbody></table>`;
+            html += `<button onclick="document.getElementById('drug-detail-panel').classList.add('hidden');">Close</button>`;
+            const panel = document.getElementById('drug-detail-panel');
+            panel.innerHTML = html;
+            panel.classList.remove('hidden');
+        }
         // Fetch inventory data and populate inventory table
         function fetchInventory() {
             fetch('/api/inventory')
@@ -186,6 +255,67 @@
         if (document.querySelector('.nav-link.active')?.dataset.tab === "inventory") {
             fetchInventory();
         }
+
+        document.getElementById('inventory-search').addEventListener('input', function() {
+            const query = this.value.trim().toLowerCase();
+            fetch('/api/inventory')
+                .then(res => res.json())
+                .then(data => {
+                    if (!query) {
+                        populateTable(data, 'inventory-table', 'inventory-loading');
+                    } else {
+                        const filtered = data.filter(row =>
+                            String(row.DrugID).toLowerCase().includes(query) ||
+                            (row.DrugName && row.DrugName.toLowerCase().includes(query))
+                        );
+                        populateTable(filtered, 'inventory-table', 'inventory-loading');
+                        if (filtered.length === 1) {
+                            viewDrugPanel(filtered[0].DrugID, filtered);
+                        }
+                    }
+                });
+        });
+
+        document.getElementById('add-drug-btn').onclick = function() {
+            document.getElementById('add-drug-modal').classList.remove('hidden');
+        };
+        function closeAddDrugModal() {
+            document.getElementById('add-drug-modal').classList.add('hidden');
+        }
+        document.getElementById('add-drug-form').onsubmit = function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const payload = {};
+            for (const el of form.elements) {
+                if (el.name) payload[el.name] = el.value;
+            }
+            fetch('/api/inventory', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            }).then(r => r.json())
+            .then(res => {
+                closeAddDrugModal();
+                fetchInventory(); // Refresh table
+            });
+        };
+
+        document.getElementById('delete-selected-btn').onclick = function() {
+            const selected = Array.from(document.querySelectorAll('.drug-row-check:checked')).map(cb => cb.dataset.drugid);
+            if (!selected.length) {
+                alert("Select drugs to delete.");
+                return;
+            }
+            if (!confirm(`Delete ${selected.length} drug(s)?`)) return;
+            fetch('/api/inventory', {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ DrugIDs: selected })
+            }).then(r => r.json())
+            .then(res => {
+                fetchInventory();
+            });
+        };
     </script>
 </body>
 </html>

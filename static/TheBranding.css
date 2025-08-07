@@ -32,6 +32,8 @@ body{
     padding: 0;
     background-color: var(--color-bg);
     color: var(--color-text);
+    display: flex;
+    min-height: 100vh;
 }
 /*The line below sets the general values for every component in the anchor, or "a", of the html file that this css file references*/
 a {
@@ -192,6 +194,7 @@ body {
   flex: 1;
   padding: var(--space-4);
   overflow-y: auto;
+  max-height: 100vh;
 }
 
 /* Hide inactive sections */
@@ -210,3 +213,41 @@ body {
   padding: var(--space-4);
   margin-top: var(--space-4);
 }
+
+.table-container {
+  max-height: 70vh;   /* or whatever fits your layout */
+  overflow-y: auto;
+  background: white;  /* Optional: keeps table background solid when scrolling */
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 5px rgba(0, 195, 255, 0.05);
+  margin-bottom: 1rem;
+}
+
+.table-controls {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    align-items: center;
+}
+#inventory-search {
+    flex: 1;
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+#drug-detail-panel {
+    margin-top: 1.5rem;
+    background: #fff;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 5px rgba(0, 195, 255, 0.05);
+    padding: 1rem;
+    max-width: 700px;
+}
+
+#add-drug-modal {
+    position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.2); display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+#add-drug-modal.hidden { display: none; }
+.modal-content { background: #fff; padding: 2rem; border-radius: 0.5rem; }
+#add-drug-form input { display: block; width: 100%; margin-bottom: 0.5rem; }
