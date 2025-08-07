@@ -23,8 +23,6 @@ db_config = {
     'port': 3307 #temporary for server target using xampp
 }
 
-
-
 ##LOG IN SECTION-----------------------------------------------------------------------------------------------
 ##the back slash is an appending prefix with the GET method implying a request from the html
 ##note: GET is used to jump from HTML to HTML if action is detected
@@ -87,7 +85,7 @@ def submit_form():
                     print("Input password:", password)
                     role = user.get('role', '').lower()
                     flash('Login successful!', 'success')
-                    if role == 'Admin':
+                    if role == 'admin':
                         print("Admin Detected")
                         session['username'] = username
                         return redirect(url_for('admin_dashboard'))
@@ -155,7 +153,33 @@ def dashboard_page():
 
 @app.route('/admin_dashboard', methods=['GET'])
 def admin_dashboard():
-    return render_template('AdminDashboard.html')
+    connection = None
+    cursor = None
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor(dictionary=True)
+
+        # TEMPORARY: Use hardcoded username as current_user
+        current_user = session['username']
+
+        # Get number of users
+        cursor.execute("SELECT COUNT(*) AS total FROM LoginData")
+        result = cursor.fetchone()
+        user_count = result['total'] if result else 0
+
+        return render_template('AdminDashboard.html',
+                               current_user=current_user,
+                               user_count=user_count)
+    except mysql.connector.Error as err:
+        flash(f'Database error: {err}', 'error')
+        return render_template('AdminDashboard.html',
+                               current_user="Unknown",
+                               user_count=0)
+    finally:
+        if cursor:
+            cursor.close()
+        if connection and connection.is_connected():
+            connection.close()
 
 @app.route('/logout', methods=['POST'])
 def logout():
@@ -315,7 +339,75 @@ def delete_drug():
     finally:
         if cursor: cursor.close()
         if connection and connection.is_connected(): connection.close()
-        
+
+# --- GET: List all accounts
+@app.route('/api/accounts', methods=['GET'])
+def get_accounts():
+    connection = None
+    cursor = None
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT ID, role, Username, Password, status, FirstName, LastName
+            FROM logindata
+        """)
+        rows = cursor.fetchall()
+        return jsonify(rows)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cursor: cursor.close()
+        if connection and connection.is_connected(): connection.close()
+
+# --- POST: Add a new account
+@app.route('/api/accounts', methods=['POST'])
+def add_account():
+    data = request.json
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
+        cursor.execute("""
+            INSERT INTO logindata
+                (ID, role, Username, Password, status, FirstName, LastName)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (
+            data.get('ID'),
+            data.get('role'),
+            data.get('Username'),
+            data.get('Password'),
+            data.get('status'),
+            data.get('FirstName'),
+            data.get('LastName')
+        ))
+        connection.commit()
+        return jsonify({'success': True}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+    finally:
+        if cursor: cursor.close()
+        if connection and connection.is_connected(): connection.close()
+
+# --- DELETE: Delete accounts by IDs
+@app.route('/api/accounts', methods=['DELETE'])
+def delete_accounts():
+    ids = request.json.get('IDs', [])
+    if not ids:
+        return jsonify({'error': 'No IDs provided.'}), 400
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
+        # Use tuple and string formatting for variable-length IN clause
+        format_strings = ','.join(['%s'] * len(ids))
+        cursor.execute(f"DELETE FROM logindata WHERE ID IN ({format_strings})", tuple(ids))
+        connection.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+    finally:
+        if cursor: cursor.close()
+        if connection and connection.is_connected(): connection.close()
+
 ##This is what starts flask. 
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', False)

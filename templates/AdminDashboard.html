@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='TheBranding.css') }}">
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h1>PharmaSys</h1>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#" data-tab="dashboard" class="nav-link active">Dashboard</a>
+            <a href="#" data-tab="accounts" class="nav-link">Accounts</a>
+            <a href="#" data-tab="inventory" class="nav-link">Inventory</a>
+            <a href="#" data-tab="receipts" class="nav-link">Receipts</a>
+        </nav>
+    </aside>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="main-content">
+        <!-- Dashboard Tab -->
+        <section id="dashboard-section">
+            <h1 class="section-title">Admin Dashboard</h1>
+            <div class="dashboard-card">
+                <div class="dashboard-info">
+                    <p id="current-admin"><strong>Logged in as:</strong> {{ current_user }}</p>
+                    <p id="account-count"><strong>Accounts registered:</strong> {{ user_count }}</p>
+                    <p id="time-on-screen"><strong>Time on screen:</strong> 0s</p>
+                </div>
+                <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
+        </section>
+
+        <!-- Accounts Tab -->
+        <section id="accounts-section" class="hidden">
+            <h2 class="section-title">User Accounts</h2>
+            <div class="table-container">
+                <table id="accounts-table" class="data-table">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+                <div id="accounts-loading" class="loading-message">Loading account data...</div>
+            </div>
+            <div class="table-controls">
+                <input type="text" id="accounts-search" placeholder="Search by ID, Username or Name">
+                <button id="add-account-btn">Add New Account</button>
+                <button id="delete-selected-account-btn">Delete Selected</button>
+            </div>
+            <div id="account-detail-panel" class="hidden"></div>
+            <div id="add-account-modal" class="hidden">
+                <div class="modal-content">
+                    <h3>Add New Account</h3>
+                    <form id="add-account-form">
+                        <input name="ID" placeholder="Employee ID" required>
+                        <select name="role" required>
+                            <option value="">Select Role</option>
+                            <option value="Admin">Admin</option>
+                            <option value="user">User</option>
+                        </select>
+                        <input name="Username" placeholder="Username" required>
+                        <input name="Password" placeholder="Password" required type="password">
+                        <select name="status" required>
+                            <option value="active">Active</option>
+                            <option value="disabled">Disabled</option>
+                        </select>
+                        <input name="FirstName" placeholder="First Name" required>
+                        <input name="LastName" placeholder="Last Name" required>
+                        <button type="submit">Add Account</button>
+                        <button type="button" onclick="closeAddAccountModal()">Cancel</button>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Inventory Tab -->
+        <section id="inventory-section" class="hidden">
+            <h2 class="section-title">Drug Inventory</h2>
+            <div class="table-container">
+                <table id="inventory-table" class="data-table">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+                <div id="inventory-loading" class="loading-message">Loading inventory data...</div>
+            </div>
+            <div class="table-controls">
+                <input type="text" id="inventory-search" placeholder="Search by Drug Name or ID">
+                <button id="add-drug-btn">Add New Drug</button>
+                <button id="delete-selected-btn">Delete Selected</button>
+            </div>
+        </section>
+
+        <div id="drug-detail-panel" class="hidden"></div>
+
+        <div id="add-drug-modal" class="hidden">
+            <div class="modal-content">
+                <h3>Add New Drug</h3>
+                <form id="add-drug-form">
+                    <!-- Inputs for all fields. You can repeat for all columns -->
+                    <input name="DrugName" placeholder="Drug Name" required>
+                    <input name="GenericName" placeholder="Generic Name">
+                    <input name="Manufacturer" placeholder="Manufacturer">
+                    <input name="Quantity" placeholder="Quantity" type="number" min="0">
+                    <input name="DosageForm" placeholder="Dosage Form">
+                    <input name="Size" placeholder="Size">
+                    <input name="Unit" placeholder="Unit">
+                    <input name="PurchasePrice" placeholder="Purchase Price" type="number" step="0.01">
+                    <input name="SellingPrice" placeholder="Selling Price" type="number" step="0.01">
+                    <input name="ExpirationDate" placeholder="Expiration Date (YYYY-MM-DD)" type="date">
+                    <input name="BatchNumber" placeholder="Batch Number">
+                    <button type="submit">Add Drug</button>
+                    <button type="button" onclick="closeAddDrugModal()">Cancel</button>
+                </form>
+            </div>
+        </div>
+
+        <section id="receipts-section" class="hidden">
+            <!-- ... same as user dashboard ... -->
+        </section>
+    </main>
+
+    <script>
+    const startTime = Date.now();
+
+    // Tab navigation (add accounts support)
+    document.querySelectorAll('.nav-link[data-tab]').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('.nav-link').forEach(function(navLink) {
+                navLink.classList.remove('active');
+            });
+            this.classList.add('active');
+            const tab = this.dataset.tab;
+            document.querySelectorAll('main section').forEach(function(section) {
+                section.classList.add('hidden');
+            });
+            document.getElementById(tab + '-section').classList.remove('hidden');
+            // Load data on tab switch
+            if (tab === "accounts") fetchAccounts();
+            if (tab === "inventory") fetchInventory();
+        });
+    });
+
+    // Timer
+    setInterval(function() {
+        const secs = Math.floor((Date.now() - startTime) / 1000);
+        document.getElementById('time-on-screen').innerHTML = '<strong>Time on screen:</strong> ' + secs + 's';
+    }, 1000);
+
+    // Logout
+    document.getElementById('logout-btn').addEventListener('click', function() {
+        window.location.href = 'Login.html';
+    });
+
+    // ----------- ACCOUNTS CRUD -----------
+    function populateAccountsTable(data, tableId, loadingId) {
+        const table = document.getElementById(tableId);
+        const loadingDiv = document.getElementById(loadingId);
+        const thead = table.querySelector('thead');
+        const tbody = table.querySelector('tbody');
+
+        if (!data || data.length === 0) {
+            if (loadingDiv) loadingDiv.textContent = 'No data available';
+            return;
+        }
+        thead.innerHTML = '';
+        tbody.innerHTML = '';
+
+        // Headers
+        const headerRow = document.createElement('tr');
+        const selectAllTh = document.createElement('th');
+        selectAllTh.innerHTML = '<input type="checkbox" id="select-all-accounts">';
+        headerRow.appendChild(selectAllTh);
+        Object.keys(data[0]).forEach(function(col) {
+            const th = document.createElement('th');
+            th.textContent = col.charAt(0).toUpperCase() + col.slice(1);
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+
+        // Rows
+        data.forEach(function(row, rowIndex) {
+            const tr = document.createElement('tr');
+            const selectTd = document.createElement('td');
+            selectTd.innerHTML = `<input type="checkbox" class="account-row-check" data-row="${rowIndex}" data-accountid="${row.ID}">`;
+            tr.appendChild(selectTd);
+
+            Object.values(row).forEach(function(val) {
+                const td = document.createElement('td');
+                td.textContent = val || '';
+                tr.appendChild(td);
+            });
+            tr.dataset.row = rowIndex;
+            tr.dataset.accountid = row.ID;
+            tr.classList.add('clickable-row');
+            tbody.appendChild(tr);
+        });
+
+        if (loadingDiv) loadingDiv.style.display = 'none';
+
+        // Enable select-all
+        document.getElementById('select-all-accounts').addEventListener('click', function() {
+            const checked = this.checked;
+            document.querySelectorAll('.account-row-check').forEach(cb => cb.checked = checked);
+        });
+
+        // Row click handler (view/edit)
+        document.querySelectorAll('.clickable-row').forEach(row => {
+            row.addEventListener('click', function(e) {
+                if (e.target.tagName === 'INPUT') return; // Ignore if click on checkbox
+                const accId = this.dataset.accountid;
+                viewAccountPanel(accId, data);
+            });
+        });
+    }
+
+    function fetchAccounts() {
+        fetch('/api/accounts')
+            .then(res => res.json())
+            .then(data => {
+                populateAccountsTable(data, 'accounts-table', 'accounts-loading');
+            })
+            .catch(err => {
+                document.getElementById('accounts-loading').textContent = "Failed to load accounts.";
+            });
+    }
+
+    // Search
+    document.getElementById('accounts-search').addEventListener('input', function() {
+        const query = this.value.trim().toLowerCase();
+        fetch('/api/accounts')
+            .then(res => res.json())
+            .then(data => {
+                if (!query) {
+                    populateAccountsTable(data, 'accounts-table', 'accounts-loading');
+                } else {
+                    const filtered = data.filter(row =>
+                        String(row.ID).toLowerCase().includes(query) ||
+                        (row.Username && row.Username.toLowerCase().includes(query)) ||
+                        (row.FirstName && row.FirstName.toLowerCase().includes(query)) ||
+                        (row.LastName && row.LastName.toLowerCase().includes(query))
+                    );
+                    populateAccountsTable(filtered, 'accounts-table', 'accounts-loading');
+                    if (filtered.length === 1) viewAccountPanel(filtered[0].ID, filtered);
+                }
+            });
+    });
+
+    // Add Account
+    document.getElementById('add-account-btn').onclick = function() {
+        document.getElementById('add-account-modal').classList.remove('hidden');
+    };
+    function closeAddAccountModal() {
+        document.getElementById('add-account-modal').classList.add('hidden');
+    }
+    document.getElementById('add-account-form').onsubmit = function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const payload = {};
+        for (const el of form.elements) {
+            if (el.name) payload[el.name] = el.value;
+        }
+        fetch('/api/accounts', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(payload)
+        }).then(r => r.json())
+        .then(res => {
+            closeAddAccountModal();
+            fetchAccounts();
+        });
+    };
+
+    // Delete
+    document.getElementById('delete-selected-account-btn').onclick = function() {
+        const selected = Array.from(document.querySelectorAll('.account-row-check:checked')).map(cb => cb.dataset.accountid);
+        if (!selected.length) {
+            alert("Select accounts to delete.");
+            return;
+        }
+        if (!confirm(`Delete ${selected.length} account(s)?`)) return;
+        fetch('/api/accounts', {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ IDs: selected })
+        }).then(r => r.json())
+        .then(res => {
+            fetchAccounts();
+        });
+    };
+
+    // Account detail panel (view, optional edit)
+    function viewAccountPanel(accId, dataset) {
+        const data = dataset || [];
+        const acc = data.find(d => String(d.ID) === String(accId));
+        if (!acc) return;
+        let html = `<h3>Account Details</h3><table class="data-table"><tbody>`;
+        for (const [k, v] of Object.entries(acc)) {
+            html += `<tr><th>${k}</th><td>${v}</td></tr>`;
+        }
+        html += `</tbody></table>`;
+        html += `<button onclick="document.getElementById('account-detail-panel').classList.add('hidden');">Close</button>`;
+        const panel = document.getElementById('account-detail-panel');
+        panel.innerHTML = html;
+        panel.classList.remove('hidden');
+    }
+    document.getElementById('inventory-search').addEventListener('input', function() {
+        const query = this.value.trim().toLowerCase();
+        fetch('/api/inventory')
+            .then(res => res.json())
+            .then(data => {
+                if (!query) {
+                    populateTable(data, 'inventory-table', 'inventory-loading');
+                } else {
+                    const filtered = data.filter(row =>
+                        String(row.DrugID).toLowerCase().includes(query) ||
+                        (row.DrugName && row.DrugName.toLowerCase().includes(query))
+                    );
+                    populateTable(filtered, 'inventory-table', 'inventory-loading');
+                    if (filtered.length === 1) {
+                        viewDrugPanel(filtered[0].DrugID, filtered);
+                    }
+                }
+            });
+    });
+    function viewDrugPanel(drugId, dataset) {
+            const data = dataset || [];
+            const drug = data.find(d => String(d.DrugID) === String(drugId));
+            if (!drug) return;
+            let html = `<h3>Drug Details</h3><table class="data-table"><tbody>`;
+            for (const [k, v] of Object.entries(drug)) {
+                html += `<tr><th>${k}</th><td>${v}</td></tr>`;
+            }
+            html += `</tbody></table>`;
+            html += `<button onclick="document.getElementById('drug-detail-panel').classList.add('hidden');">Close</button>`;
+            const panel = document.getElementById('drug-detail-panel');
+            panel.innerHTML = html;
+            panel.classList.remove('hidden');
+        }
+        // Fetch inventory data and populate inventory table
+        function fetchInventory() {
+            fetch('/api/inventory')
+                .then(res => res.json())
+                .then(data => {
+                    populateTable(data, 'inventory-table', 'inventory-loading');
+                })
+                .catch(err => {
+                    document.getElementById('inventory-loading').textContent = "Failed to load inventory data.";
+                });
+        }
+
+        // Tab navigation with inventory reload logic
+        document.querySelectorAll('.nav-link[data-tab]').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                // Update active link styling
+                document.querySelectorAll('.nav-link').forEach(function(navLink) {
+                    navLink.classList.remove('active');
+                });
+                this.classList.add('active');
+
+                // Show/hide sections
+                const tab = this.dataset.tab;
+                document.querySelectorAll('main section').forEach(function(section) {
+                    section.classList.add('hidden');
+                });
+                document.getElementById(tab + '-section').classList.remove('hidden');
+
+                // If switching to inventory tab, fetch data
+                if (tab === "inventory") {
+                    fetchInventory();
+                }
+            });
+        });
+        
+        if (document.querySelector('.nav-link.active')?.dataset.tab === "inventory") {
+            fetchInventory();
+        }
+
+
+
+        document.getElementById('add-drug-btn').onclick = function() {
+            document.getElementById('add-drug-modal').classList.remove('hidden');
+        };
+        
+        function closeAddDrugModal() {
+            document.getElementById('add-drug-modal').classList.add('hidden');
+        }
+        document.getElementById('add-drug-form').onsubmit = function(e) {
+            e.preventDefault();
+            const form = e.target;
+            const payload = {};
+            for (const el of form.elements) {
+                if (el.name) payload[el.name] = el.value;
+            }
+            fetch('/api/inventory', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            }).then(r => r.json())
+            .then(res => {
+                closeAddDrugModal();
+                fetchInventory(); // Refresh table
+            });
+        };
+
+        document.getElementById('delete-selected-btn').onclick = function() {
+            const selected = Array.from(document.querySelectorAll('.drug-row-check:checked')).map(cb => cb.dataset.drugid);
+            if (!selected.length) {
+                alert("Select drugs to delete.");
+                return;
+            }
+            if (!confirm(`Delete ${selected.length} drug(s)?`)) return;
+            fetch('/api/inventory', {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ DrugIDs: selected })
+            }).then(r => r.json())
+            .then(res => {
+                fetchInventory();
+            });
+        };
+
+    if (document.querySelector('.nav-link.active')?.dataset.tab === "accounts") {
+        fetchAccounts();
+    }
+    </script>
+</body>
+</html>
