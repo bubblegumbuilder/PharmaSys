@@ -1,7 +1,7 @@
 # I screwed up with the last backend file so I'm remaking it all over again
 # This is what we will use for the whole code. flask, exclusively.
 import os  # needed for loading secret key from environment
-from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash  # for secure password handling
 # MySQL connector for backend integration
 import mysql.connector
@@ -22,6 +22,7 @@ db_config = {
     'database': 'pharmasys',
     'port': 3307 #temporary for server target using xampp
 }
+
 
 
 ##LOG IN SECTION-----------------------------------------------------------------------------------------------
@@ -245,6 +246,34 @@ def submit_signup():
                     connection.close()
     return redirect(url_for('signup_page'))
 
+@app.route('/api/inventory', methods=['GET'])
+def api_inventory():
+    connection = None
+    cursor = None
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT
+                DrugID, Manufacturer, Quantity, DrugName, GenericName, DosageForm, Size, Unit,
+                PurchasePrice, SellingPrice, ExpirationDate, BatchNumber, LastUpdated
+            FROM drugdatabase
+        """)
+        rows = cursor.fetchall()
+        # Convert dates to strings if needed
+        for row in rows:
+            if 'ExpirationDate' in row and hasattr(row['ExpirationDate'], 'isoformat'):
+                row['ExpirationDate'] = row['ExpirationDate'].isoformat()
+            if 'LastUpdated' in row and hasattr(row['LastUpdated'], 'isoformat'):
+                row['LastUpdated'] = row['LastUpdated'].isoformat()
+        return jsonify(rows)
+    except mysql.connector.Error as err:
+        return jsonify({"error": str(err)}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if connection and connection.is_connected():
+            connection.close()
 
 ##This is what starts flask. 
 if __name__ == '__main__':
