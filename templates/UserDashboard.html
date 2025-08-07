@@ -130,7 +130,11 @@
 
         // Logout button
         document.getElementById('logout-btn').addEventListener('click', function() {
-            window.location.href = 'Login.html';
+            fetch('/logout', {method: 'POST'})
+            .then(() => {
+                // After logout, redirect to login page (Flask should handle it)
+                window.location.href = '/';
+            });
         });
 
         // TODO: Replace the function below with a fetch() to call Flask endpoints returning JSON data

@@ -152,7 +152,11 @@
 
     // Logout
     document.getElementById('logout-btn').addEventListener('click', function() {
-        window.location.href = 'Login.html';
+        fetch('/logout', {method: 'POST'})
+        .then(() => {
+            // After logout, redirect to login page (Flask should handle it)
+            window.location.href = '/';
+        });
     });
 
     // ----------- ACCOUNTS CRUD -----------
@@ -386,7 +390,7 @@
         document.getElementById('add-drug-btn').onclick = function() {
             document.getElementById('add-drug-modal').classList.remove('hidden');
         };
-        
+
         function closeAddDrugModal() {
             document.getElementById('add-drug-modal').classList.add('hidden');
         }
