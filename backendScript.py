@@ -193,83 +193,84 @@ def signup_page():
     return render_template('SignUp.html')
 
 # This is where the signup will check
-@app.route('/signup', methods=['POST'])
-def submit_signup():
-    if request.method == 'POST':
-        # These are variables to be retrieved from the signup page
-        firstName = request.form.get('firstName')
-        lastName = request.form.get('lastName')
-        employeeId = request.form.get('employeeId')
-        username = request.form.get('username')
-        password = request.form.get('password')
-        confirmPassword = request.form.get('confirmPassword')
+@app.route('/api/inventory', methods=['POST'])
+def add_drug():
+    data = request.json or {}
+    def to_int(v, default=0):
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return default
+    def to_dec(v, default=0.0):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return default
 
-        errors = []
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
 
-        # We want to check if any values are empty
-        if not firstName:
-            errors.append("First name is required.")
-        if not lastName:
-            errors.append("Last name is required.")
-        if not employeeId:
-            errors.append("Employee ID is required.")
-        elif len(employeeId) > 8:
-            errors.append("Invalid Employee ID.")
-        if not username:
-            errors.append("Username is required.")
-        elif len(username) < 3:
-            errors.append("Username must be at least 3 characters long.")
-        if not password:
-            errors.append("Password is required.")
-        elif len(password) < 6:
-            errors.append("Password must be at least 6 characters long.")
-        if not confirmPassword:
-            errors.append("Please confirm your password.")
-        elif password != confirmPassword:
-            errors.append("Passwords do not match.")
+        DrugName      = (data.get('DrugName') or '').strip()
+        GenericName   = (data.get('GenericName') or '').strip()
+        Manufacturer  = (data.get('Manufacturer') or '').strip()
+        Quantity      = to_int(data.get('Quantity'), 0)
+        DosageForm    = (data.get('DosageForm') or '').strip()
+        Size          = (data.get('Size') or '').strip()
+        Unit          = (data.get('Unit') or '').strip()
+        PurchasePrice = to_dec(data.get('PurchasePrice'), 0.0)
+        SellingPrice  = to_dec(data.get('SellingPrice'), 0.0)
+        ExpirationDate= (data.get('ExpirationDate') or None)  # 'YYYY-MM-DD' or None
+        BatchNumber   = (data.get('BatchNumber') or '').strip()
 
-        # Check if any errors exist and flash them
-        if errors:
-            for error in errors:
-                flash(error, 'error')
-            print("Validation errors (signup):", errors)
-            return render_template('SignUp.html',
-                                   firstName=firstName,
-                                   lastName=lastName,
-                                   username=username,
-                                   employeeId=employeeId)
-        else:
-            connection = None
-            cursor = None
-            try:
-                # print in console for debugging purposes. This let's us verify if task is thrown at the plugging process of form to csv
-                print("Inserting new user:", employeeId, username)
-                connection = mysql.connector.connect(**db_config)
-                cursor = connection.cursor()
-                #disabled password hashing temporarily for prototyping [IMPORTANT BTW]
-                    ### hash password before storing
-                    ##hashed_password = generate_password_hash(password)
-                # Insert the account into the users database
-                cursor.execute(
-                    "INSERT INTO LoginData (ID, role, Username, Password, status, FirstName, LastName) "
-                    "VALUES (%s, %s, %s, %s, %s, %s, %s)",
-                    (employeeId, 'user', username, password, 'active', firstName, lastName)
-                )
-                connection.commit()
-                flash('Account created successfully!', 'success')
-                print("Signup successful. Redirecting to success page.")
-                return redirect(url_for('success_page'))
-            except mysql.connector.Error as err:
-                flash(f'Database error: {err}', 'error')
-                print("MySQL error (signup):", err)
-                return render_template('SignUp.html')
-            finally:
-                if cursor:
-                    cursor.close()
-                if connection and connection.is_connected():
-                    connection.close()
-    return redirect(url_for('signup_page'))
+        if not DrugName:
+            return jsonify({"error":"DrugName is required"}), 400
 
+        cursor.execute("""
+            INSERT INTO drugdatabase
+                (DrugName, GenericName, Manufacturer, Quantity,
+                 DosageForm, Size, Unit, PurchasePrice, SellingPrice,
+                 ExpirationDate, BatchNumber, LastUpdated)
+            VALUES
+                (%s, %s, %s, %s,
+                 %s, %s, %s, %s, %s,
+                 %s, %s, NOW())
+        """, (DrugName, GenericName, Manufacturer, Quantity,
+              DosageForm, Size, Unit, PurchasePrice, SellingPrice,
+              ExpirationDate, BatchNumber))
+        connection.commit()
+        return jsonify({"success": True}), 201
+    except mysql.connector.Error as e:
+        return jsonify({"error": str(e)}), 400
+    finally:
+        try:
+            cursor.close()
+        except: pass
+        try:
+            if connection and connection.is_connected():
+                connection.close()
+        except: pass
+
+@app.route('/api/inventory', methods=['DELETE'])
+def delete_drug():
+    ids = request.json.get('DrugIDs', [])
+    if not ids:
+        return jsonify({"error": "No DrugIDs provided"}), 400
+    try:
+        connection = mysql.connector.connect(**db_config)
+        cursor = connection.cursor()
+        fmt = ','.join(['%s'] * len(ids))
+        cursor.execute(f"DELETE FROM drugdatabase WHERE DrugID IN ({fmt})", tuple(ids))
+        deleted = cursor.rowcount
+        connection.commit()
+        return jsonify({"success": True, "deleted": deleted})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+    finally:
+        if cursor: cursor.close()
+        if connection and connection.is_connected(): connection.close()
+
+# --- GET: list inventory
 @app.route('/api/inventory', methods=['GET'])
 def api_inventory():
     connection = None
@@ -289,53 +290,9 @@ def api_inventory():
                 row['ExpirationDate'] = row['ExpirationDate'].isoformat()
             if 'LastUpdated' in row and hasattr(row['LastUpdated'], 'isoformat'):
                 row['LastUpdated'] = row['LastUpdated'].isoformat()
-        from flask import jsonify
         return jsonify(rows)
     except mysql.connector.Error as err:
-        from flask import jsonify
         return jsonify({"error": str(err)}), 500
-    finally:
-        if cursor:
-            cursor.close()
-        if connection and connection.is_connected():
-            connection.close()
-
-@app.route('/api/inventory', methods=['POST'])
-def add_drug():
-    data = request.json
-    try:
-        connection = mysql.connector.connect(**db_config)
-        cursor = connection.cursor()
-        cursor.execute("""
-            INSERT INTO drugdatabase
-                (DrugName, GenericName, Manufacturer, Quantity, DosageForm, Size, Unit, PurchasePrice, SellingPrice, ExpirationDate, BatchNumber)
-            VALUES
-                (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            data.get('DrugName'), data.get('GenericName'), data.get('Manufacturer'), data.get('Quantity'),
-            data.get('DosageForm'), data.get('Size'), data.get('Unit'), data.get('PurchasePrice'),
-            data.get('SellingPrice'), data.get('ExpirationDate'), data.get('BatchNumber')
-        ))
-        connection.commit()
-        return jsonify({"success": True}), 201
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-    finally:
-        if cursor: cursor.close()
-        if connection and connection.is_connected(): connection.close()
-
-@app.route('/api/inventory', methods=['DELETE'])
-def delete_drug():
-    ids = request.json.get('DrugIDs', [])
-    try:
-        connection = mysql.connector.connect(**db_config)
-        cursor = connection.cursor()
-        format_strings = ','.join(['%s'] * len(ids))
-        cursor.execute(f"DELETE FROM drugdatabase WHERE DrugID IN ({format_strings})", tuple(ids))
-        connection.commit()
-        return jsonify({"success": True})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
     finally:
         if cursor: cursor.close()
         if connection and connection.is_connected(): connection.close()

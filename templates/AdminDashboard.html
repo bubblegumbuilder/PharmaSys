@@ -125,25 +125,6 @@
     <script>
     const startTime = Date.now();
 
-    // Tab navigation (add accounts support)
-    document.querySelectorAll('.nav-link[data-tab]').forEach(function(link) {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            document.querySelectorAll('.nav-link').forEach(function(navLink) {
-                navLink.classList.remove('active');
-            });
-            this.classList.add('active');
-            const tab = this.dataset.tab;
-            document.querySelectorAll('main section').forEach(function(section) {
-                section.classList.add('hidden');
-            });
-            document.getElementById(tab + '-section').classList.remove('hidden');
-            // Load data on tab switch
-            if (tab === "accounts") fetchAccounts();
-            if (tab === "inventory") fetchInventory();
-        });
-    });
-
     // Timer
     setInterval(function() {
         const secs = Math.floor((Date.now() - startTime) / 1000);
@@ -450,6 +431,8 @@
                 // If switching to inventory tab, fetch data
                 if (tab === "inventory") {
                     fetchInventory();
+                } else if (tab === "accounts") {   // ← add this line
+                    fetchAccounts();
                 }
             });
         });
@@ -467,39 +450,42 @@
         function closeAddDrugModal() {
             document.getElementById('add-drug-modal').classList.add('hidden');
         }
-        document.getElementById('add-drug-form').onsubmit = function(e) {
+        document.getElementById('add-drug-form').onsubmit = async function(e) {
             e.preventDefault();
             const form = e.target;
             const payload = {};
-            for (const el of form.elements) {
-                if (el.name) payload[el.name] = el.value;
-            }
-            fetch('/api/inventory', {
+            for (const el of form.elements) if (el.name) payload[el.name] = el.value;
+
+            const res = await fetch('/api/inventory', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
-            }).then(r => r.json())
-            .then(res => {
-                closeAddDrugModal();
-                fetchInventory(); // Refresh table
             });
-        };
-
-        document.getElementById('delete-selected-btn').onclick = function() {
-            const selected = Array.from(document.querySelectorAll('.drug-row-check:checked')).map(cb => cb.dataset.drugid);
-            if (!selected.length) {
-                alert("Select drugs to delete.");
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.error || 'Add failed');
                 return;
             }
+            closeAddDrugModal();
+            await fetchInventory();
+        };
+
+        document.getElementById('delete-selected-btn').onclick = async function() {
+            const selected = Array.from(document.querySelectorAll('.drug-row-check:checked')).map(cb => cb.dataset.drugid);
+            if (!selected.length) { alert("Select drugs to delete."); return; }
             if (!confirm(`Delete ${selected.length} drug(s)?`)) return;
-            fetch('/api/inventory', {
+
+            const res = await fetch('/api/inventory', {
                 method: 'DELETE',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ DrugIDs: selected })
-            }).then(r => r.json())
-            .then(res => {
-                fetchInventory();
             });
+            const data = await res.json();
+            if (!res.ok) {
+                alert(data.error || 'Delete failed');
+                return;
+            }
+            await fetchInventory();
         };
 
 
