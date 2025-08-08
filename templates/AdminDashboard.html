@@ -311,6 +311,7 @@
         panel.innerHTML = html;
         panel.classList.remove('hidden');
     }
+    
     document.getElementById('inventory-search').addEventListener('input', function() {
         const query = this.value.trim().toLowerCase();
         fetch('/api/inventory')
@@ -330,6 +331,78 @@
                 }
             });
     });
+
+    if (document.querySelector('.nav-link.active')?.dataset.tab === "accounts") {
+        fetchAccounts();
+    }
+
+    function populateTable(data, tableId, loadingId) {
+            const table = document.getElementById(tableId);
+            const loadingDiv = document.getElementById(loadingId);
+            const thead = table.querySelector('thead');
+            const tbody = table.querySelector('tbody');
+
+            if (!data || data.length === 0) {
+                if (loadingDiv) {
+                    loadingDiv.textContent = 'No data available';
+                }
+                return;
+            }
+
+            thead.innerHTML = '';
+            tbody.innerHTML = '';
+
+            // Create headers
+            const headerRow = document.createElement('tr');
+            const selectAllTh = document.createElement('th');
+            selectAllTh.innerHTML = '<input type="checkbox" id="select-all-drugs">';
+            headerRow.appendChild(selectAllTh);
+
+            Object.keys(data[0]).forEach(function(col) {
+                const th = document.createElement('th');
+                th.textContent = col.charAt(0).toUpperCase() + col.slice(1);
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
+            // Create rows
+            data.forEach(function(row, rowIndex) {
+                const tr = document.createElement('tr');
+                const selectTd = document.createElement('td');
+                selectTd.innerHTML = `<input type="checkbox" class="drug-row-check" data-row="${rowIndex}" data-drugid="${row.DrugID}">`;
+                tr.appendChild(selectTd);
+
+                Object.values(row).forEach(function(val) {
+                    const td = document.createElement('td');
+                    td.textContent = val || '';
+                    tr.appendChild(td);
+                });
+                tr.dataset.row = rowIndex;
+                tr.dataset.drugid = row.DrugID; // Attach DrugID for reference
+                tr.classList.add('clickable-row');
+                tbody.appendChild(tr);
+            });
+
+            if (loadingDiv) {
+                loadingDiv.style.display = 'none';
+            }
+
+            // Enable select-all
+            document.getElementById('select-all-drugs').addEventListener('click', function() {
+                const checked = this.checked;
+                document.querySelectorAll('.drug-row-check').forEach(cb => cb.checked = checked);
+            });
+
+            // Row click handler (for search/view details)
+            document.querySelectorAll('.clickable-row').forEach(row => {
+                row.addEventListener('click', function(e) {
+                    if (e.target.tagName === 'INPUT') return; // Ignore if click on checkbox
+                    const drugId = this.dataset.drugid;
+                    viewDrugPanel(drugId, data);
+                });
+            });
+        }
+
     function viewDrugPanel(drugId, dataset) {
             const data = dataset || [];
             const drug = data.find(d => String(d.DrugID) === String(drugId));
@@ -429,9 +502,7 @@
             });
         };
 
-    if (document.querySelector('.nav-link.active')?.dataset.tab === "accounts") {
-        fetchAccounts();
-    }
+
     </script>
 </body>
 </html>
